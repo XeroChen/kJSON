@@ -99,6 +99,28 @@ kjson_status_t kjson_parse(kjson_parser_t* parser, const char* data, size_t leng
 void kjson_parser_destroy(kjson_parser_t* parser);
 ```
 
+## Fuzz Testing
+
+kJSON supports fuzz testing with AFL++.
+
+1.  **Build with AFL++**:
+    ```bash
+    mkdir build_fuzz && cd build_fuzz
+    CC=afl-cc cmake -DENABLE_FUZZING=ON ..
+    make
+    ```
+
+2.  **Run Fuzzer**:
+    You can run the fuzzer directly using the CMake target:
+    ```bash
+    make fuzz
+    ```
+    
+    Or manually:
+    ```bash
+    afl-fuzz -i ../test/corpus -o fuzz_out -- ./kjson_fuzz
+    ```
+
 ## Build Dependencies
 
 - **Ragel** (for state machine generation)

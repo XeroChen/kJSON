@@ -6,6 +6,25 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Options
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+option(ENABLE_FUZZING "Enable fuzzing build" OFF)
+
+if(ENABLE_FUZZING)
+    add_executable(kjson_fuzz test/fuzz_harness.c)
+    target_link_libraries(kjson_fuzz kjson)
+
+    find_program(AFL_FUZZ_EXECUTABLE afl-fuzz)
+    if(AFL_FUZZ_EXECUTABLE)
+        add_custom_target(fuzz
+            COMMAND ${AFL_FUZZ_EXECUTABLE} -i ${CMAKE_SOURCE_DIR}/test/corpus -o ${CMAKE_BINARY_DIR}/fuzz_out -- $<TARGET_FILE:kjson_fuzz>
+            DEPENDS kjson_fuzz
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            COMMENT "Running AFL++ fuzzer..."
+            USES_TERMINAL
+        )
+    else()
+        message(WARNING "afl-fuzz not found. Fuzzing target will not be available.")
+    endif()
+endif()
 
 # Output directories
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -79,3 +98,7 @@ add_test(NAME test_standard COMMAND test_standard)
 add_executable(test_json5 test/test_json5.c test/test_utils.c)
 target_link_libraries(test_json5 kjson cmocka)
 add_test(NAME test_json5 COMMAND test_json5)
+
+add_executable(test_comprehensive test/test_comprehensive.c test/test_utils.c)
+target_link_libraries(test_comprehensive kjson cmocka)
+add_test(NAME test_comprehensive COMMAND test_comprehensive)
