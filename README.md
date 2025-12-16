@@ -1,8 +1,8 @@
-# xJSON
+# kJSON
 
 ## Overview
 
-xJSON is a lightweight JSON (JavaScript Object Notation) parser(reader only) writing in C leveraging Ragel. It is compatible with JSON and JSON5. It is designed for fast and easy parsing of the JSON data stream in WAF.
+kJSON is a lightweight JSON (JavaScript Object Notation) parser(reader only) writing in C leveraging Ragel. It is compatible with JSON and JSON5. It is designed for fast and easy parsing of the JSON data stream in WAF.
 
 ## Features
 
@@ -23,13 +23,13 @@ xJSON is a lightweight JSON (JavaScript Object Notation) parser(reader only) wri
 
 ## Core API
 
-The core API of xJSON provides functions for parsing JSON data streams and handling parsing events. The main components include:
+The core API of kJSON provides functions for parsing JSON data streams and handling parsing events. The main components include:
 
 - **Parser Initialization**: Functions to create and configure a parser instance.
 
 ```C
-#include "xjson.h"
-xjson_parser_t* xjson_parser_create(xjson_config_t* config);
+#include "kjson.h"
+kjson_parser_t* kjson_parser_create(kjson_config_t* config);
 
 ```
 
@@ -44,29 +44,29 @@ typedef struct {
     void (*on_key)(const char* key, size_t key_length, void* user_data);
     void (*on_value)(const char* value, size_t value_length, void* user_data);
     void (*on_error)(const char* error_message, size_t error_length, void* user_data);
-} xjson_event_handlers_t;
+} kjson_event_handlers_t;
 
-xjson_parser_t* xjson_parser_create(xjson_config_t* config);
-xjson_parser_t->handler->on_object_start = my_object_start_handler;
-xjson_parser_t->handler->on_object_end = my_object_end_handler;
-xjson_parser_t->handler->on_array_start = my_array_start_handler;
-xjson_parser_t->handler->on_array_end = my_array_end_handler;
-xjson_parser_t->handler->on_key = my_key_handler;
-xjson_parser_t->handler->on_value = my_value_handler;
-xjson_parser_t->handler->on_error = my_error_handler;
+kjson_parser_t* kjson_parser_create(kjson_config_t* config);
+kjson_parser_t->handler->on_object_start = my_object_start_handler;
+kjson_parser_t->handler->on_object_end = my_object_end_handler;
+kjson_parser_t->handler->on_array_start = my_array_start_handler;
+kjson_parser_t->handler->on_array_end = my_array_end_handler;
+kjson_parser_t->handler->on_key = my_key_handler;
+kjson_parser_t->handler->on_value = my_value_handler;
+kjson_parser_t->handler->on_error = my_error_handler;
 ```
 
 - **Parsing Function**: A function to feed JSON data into the parser and trigger the parsing
 process.
 
 ```C
-xjson_status_t xjson_parse(xjson_parser_t* parser, const char* data, size_t length, xjson_event_handlers_t* handlers, void* user_data);
+kjson_status_t kjson_parse(kjson_parser_t* parser, const char* data, size_t length, kjson_event_handlers_t* handlers, void* user_data);
 ```
 
 - **Parser Destruction**: Functions to clean up and free parser resources.
 
 ```C
-void xjson_parser_destroy(xjson_parser_t* parser);
+void kjson_parser_destroy(kjson_parser_t* parser);
 ```
 
 ## Build Dependencies
