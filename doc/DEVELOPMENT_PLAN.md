@@ -14,5 +14,7 @@ This document outlines the high-level steps for developing the kJSON library, se
 
 - [x] Grammar Implementation: Implement standard JSON grammar (strings, numbers, bools, null) - *Simplified to treat primitives as strings*.
 - [x] JSON5 Support: Add JSON5 specific features (comments, trailing commas, unquoted keys, etc.).
+- [x] Build System Enhancements: Add install targets and pkg-config support.
+- [x] CLI Tool: Create a `kjson` command-line tool for parsing JSON from stdin or file.
 - [ ] Comprehensive Testing: Add tests for all data types and edge cases.
 

@@ -39,6 +39,18 @@ kJSON is a lightweight JSON (JavaScript Object Notation) **READ-ONLY** SAX-style
 - **Configurable Limits**: Allows setting limits on nesting depth and string length to prevent resource exhaustion.
 - **Tolerant**: Handles minor syntax errors gracefully, allowing for more robust parsing in real-world scenarios.
 
+## CLI Tool
+
+kJSON includes a command-line tool `kjson` for parsing JSON from standard input or files.
+
+```bash
+# Parse from stdin
+echo '{"key": "value"}' | kjson
+
+# Parse from file
+kjson data.json
+```
+
 ## Core API
 
 The core API of kJSON provides functions for parsing JSON data streams and handling parsing events. The main components include:

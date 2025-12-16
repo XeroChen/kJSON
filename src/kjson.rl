@@ -102,6 +102,7 @@ struct kjson_parser_s {
     # Matches anything that is not a delimiter or whitespace
     delimiter = [ \t\n\r\{\}\[\],":/];
     primitive_base = ( any - delimiter )+ >start_primitive delimiter @on_value @{ fhold; };
+    primitive_eof = ( any - delimiter )+ >start_primitive %/on_value;
 
     # Machines
     
@@ -144,9 +145,10 @@ struct kjson_parser_s {
         ws* (
             string_grammar >mark @on_quoted_value |
             primitive_base |
+            primitive_eof |
             '{' @on_object_start @{ fcall object; } |
             '[' @on_array_start @{ fcall array; }
-        )
+        ) ws*
     );
 
     write data;
