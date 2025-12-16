@@ -1,8 +1,26 @@
 # kJSON
 
+## Why kJSON: A Technical Challenge of Robust JSON+JSON5 SAX-Style Parsing
+This is a difficult requirement to fulfill perfectly. There are very few direct equivalents to yajl (a low-level C, event-driven/SAX-style parser) that also support the full JSON5 specification.
+
+Here is why this combination is rare, followed by the best available open-source options.
+
+The Technical Challenge
+The reason you don't find many streaming JSON5 parsers is that JSON5 features make streaming extremely difficult compared to strict JSON.
+
+Strict JSON (like yajl): It is very easy to parse byte-by-byte using a simple state machine. When you see a `{`, you enter "object state." When you see a `"`, you enter "string state."
+
+JSON5: Features like multi-line comments `/* ... */` and trailing commas throw a wrench into streaming.
+
+If your input stream chunk ends right in the middle of a comment marker (e.g., the chunk ends with `/`), the parser cannot know if it's a division symbol or the start of a comment until it gets the next chunk.
+
+Handling unquoted keys requires significantly more lookahead buffering than strict JSON strings.
+
+Because of this complexity, most JSON5 parsers choose to load the entire document into memory (DOM style) before parsing.
+
 ## Overview
 
-kJSON is a lightweight JSON (JavaScript Object Notation) parser(reader only) writing in C leveraging Ragel. It is compatible with JSON and JSON5. It is designed for fast and easy parsing of the JSON data stream in WAF.
+kJSON is a lightweight JSON (JavaScript Object Notation) **READ-ONLY** SAX-style parser written in C leveraging [**Ragel**](https://www.colm.net/open-source/ragel/). It is compatible with JSON and JSON5. It is designed for robust, fast and easy parsing of the JSON data stream in WAF like IDS/IPS devices.
 
 ## Features
 
@@ -78,4 +96,9 @@ void kjson_parser_destroy(kjson_parser_t* parser);
 - **gcov/lcov** (for code coverage analysis)
 - **AFL++** (for fuzz testing)
 - **Valgrind** (for memory leak detection) 
+
+## Documentation
+
+- [Context and Instructions](doc/GEMINI.md)
+- [Development Plan](doc/DEVELOPMENT_PLAN.md)
 
