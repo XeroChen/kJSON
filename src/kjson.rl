@@ -49,9 +49,23 @@ struct kjson_parser_s {
             handlers->on_key(parser->mark, p - parser->mark, user_data);
     }
 
+    action on_quoted_key {
+        if (handlers && handlers->on_key) {
+            // Strip quotes
+            handlers->on_key(parser->mark + 1, p - parser->mark - 1, user_data);
+        }
+    }
+
     action on_value {
         if (handlers && handlers->on_value)
             handlers->on_value(parser->mark, p - parser->mark, user_data);
+    }
+
+    action on_quoted_value {
+        if (handlers && handlers->on_value) {
+            // Strip quotes
+            handlers->on_value(parser->mark + 1, p - parser->mark - 1, user_data);
+        }
     }
 
     action debug {
@@ -80,7 +94,9 @@ struct kjson_parser_s {
     # Identifier (Unquoted key)
     identifier = [a-zA-Z$_] [a-zA-Z0-9$_]*;
     
-    key = string_grammar | identifier;
+    quoted_key = string_grammar >mark @on_quoted_key;
+    unquoted_key = identifier >mark %on_key;
+    key_parser = quoted_key | unquoted_key;
 
     # Simplified primitive value (numbers, bools, null, NaN, Inf, etc.)
     # Matches anything that is not a delimiter or whitespace
@@ -91,9 +107,9 @@ struct kjson_parser_s {
     
     object := (
         ws* '}' @on_object_end @{ fret; } |
-        ws* key >mark %on_key ws* ':' @call_value (
+        ws* key_parser ws* ':' @call_value (
             ws* ',' ws* (
-                ( key >mark %on_key ws* ':' @call_value ) |
+                ( key_parser ws* ':' @call_value ) |
                 ( '}' @on_object_end @{ fret; } )
             )
         )* ws* '}' @on_object_end @{ fret; }
@@ -115,7 +131,7 @@ struct kjson_parser_s {
 
     value_recursive_expr = (
         ws* (
-            string_grammar >mark @on_value @do_return |
+            string_grammar >mark @on_quoted_value @do_return |
             primitive_base @do_return |
             '{' @on_object_start @{ fgoto object; } |
             '[' @on_array_start @{ fgoto array; }
@@ -126,7 +142,7 @@ struct kjson_parser_s {
 
     main := (
         ws* (
-            string_grammar >mark @on_value |
+            string_grammar >mark @on_quoted_value |
             primitive_base |
             '{' @on_object_start @{ fcall object; } |
             '[' @on_array_start @{ fcall array; }

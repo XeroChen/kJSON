@@ -6,123 +6,115 @@
 #include <string.h>
 #include <stdio.h>
 #include "kjson.h"
-
-static int object_start_count = 0;
-static int object_end_count = 0;
-static int array_start_count = 0;
-static int array_end_count = 0;
-static int key_count = 0;
-static int value_count = 0;
-
-static void reset_counts() {
-    object_start_count = 0;
-    object_end_count = 0;
-    array_start_count = 0;
-    array_end_count = 0;
-    key_count = 0;
-    value_count = 0;
-}
-
-static void on_object_start(size_t offset, void* user_data) {
-    object_start_count++;
-}
-
-static void on_object_end(size_t offset, void* user_data) {
-    object_end_count++;
-}
-
-static void on_array_start(size_t offset, void* user_data) {
-    array_start_count++;
-}
-
-static void on_array_end(size_t offset, void* user_data) {
-    array_end_count++;
-}
-
-static void on_key(const char* data, size_t length, void* user_data) {
-    key_count++;
-}
-
-static void on_value(const char* data, size_t length, void* user_data) {
-    value_count++;
-}
-
-static kjson_event_handlers_t handlers = {
-    .on_object_start = on_object_start,
-    .on_object_end = on_object_end,
-    .on_array_start = on_array_start,
-    .on_array_end = on_array_end,
-    .on_key = on_key,
-    .on_value = on_value
-};
+#include "test_utils.h"
 
 static void test_json5_comments(void **state) {
-    reset_counts();
     kjson_parser_t* parser = kjson_parser_create(NULL);
     const char* json = "{ // This is a comment\n"
                        "  \"key\": /* Multi-line \n comment */ \"value\" }";
-    kjson_status_t status = kjson_parse(parser, json, strlen(json), &handlers, NULL);
+    
+    expected_event_t expected[] = {
+        { EVENT_OBJECT_START, NULL },
+        { EVENT_KEY, "key" },
+        { EVENT_VALUE, "value" },
+        { EVENT_OBJECT_END, NULL }
+    };
+    
+    test_context_t ctx = { expected, 4, 0 };
+    
+    kjson_status_t status = kjson_parse(parser, json, strlen(json), &test_handlers, &ctx);
     
     assert_int_equal(status, KJSON_OK);
-    assert_int_equal(object_start_count, 1);
-    assert_int_equal(key_count, 1);
-    assert_int_equal(value_count, 1);
+    assert_int_equal(ctx.current, 4);
     
     kjson_parser_destroy(parser);
 }
 
 static void test_json5_trailing_comma(void **state) {
-    reset_counts();
     kjson_parser_t* parser = kjson_parser_create(NULL);
     const char* json = "[1, 2, 3, ]";
-    kjson_status_t status = kjson_parse(parser, json, strlen(json), &handlers, NULL);
+    
+    expected_event_t expected[] = {
+        { EVENT_ARRAY_START, NULL },
+        { EVENT_VALUE, "1" },
+        { EVENT_VALUE, "2" },
+        { EVENT_VALUE, "3" },
+        { EVENT_ARRAY_END, NULL }
+    };
+    
+    test_context_t ctx = { expected, 5, 0 };
+    
+    kjson_status_t status = kjson_parse(parser, json, strlen(json), &test_handlers, &ctx);
     
     assert_int_equal(status, KJSON_OK);
-    assert_int_equal(array_start_count, 1);
-    assert_int_equal(value_count, 3);
+    assert_int_equal(ctx.current, 5);
     
     kjson_parser_destroy(parser);
 }
 
 static void test_json5_unquoted_keys(void **state) {
-    reset_counts();
     kjson_parser_t* parser = kjson_parser_create(NULL);
     const char* json = "{ key: \"value\", $var: 123, _underscore: true }";
-    kjson_status_t status = kjson_parse(parser, json, strlen(json), &handlers, NULL);
+    
+    expected_event_t expected[] = {
+        { EVENT_OBJECT_START, NULL },
+        { EVENT_KEY, "key" },
+        { EVENT_VALUE, "value" },
+        { EVENT_KEY, "$var" },
+        { EVENT_VALUE, "123" },
+        { EVENT_KEY, "_underscore" },
+        { EVENT_VALUE, "true" },
+        { EVENT_OBJECT_END, NULL }
+    };
+    
+    test_context_t ctx = { expected, 8, 0 };
+    
+    kjson_status_t status = kjson_parse(parser, json, strlen(json), &test_handlers, &ctx);
     
     assert_int_equal(status, KJSON_OK);
-    assert_int_equal(object_start_count, 1);
-    assert_int_equal(key_count, 3);
-    assert_int_equal(value_count, 3);
+    assert_int_equal(ctx.current, 8);
     
     kjson_parser_destroy(parser);
 }
 
 static void test_json5_single_quotes(void **state) {
-    reset_counts();
     kjson_parser_t* parser = kjson_parser_create(NULL);
     const char* json = "{ 'key': 'value' }";
-    kjson_status_t status = kjson_parse(parser, json, strlen(json), &handlers, NULL);
+    
+    expected_event_t expected[] = {
+        { EVENT_OBJECT_START, NULL },
+        { EVENT_KEY, "key" },
+        { EVENT_VALUE, "value" },
+        { EVENT_OBJECT_END, NULL }
+    };
+    
+    test_context_t ctx = { expected, 4, 0 };
+    
+    kjson_status_t status = kjson_parse(parser, json, strlen(json), &test_handlers, &ctx);
     
     assert_int_equal(status, KJSON_OK);
-    assert_int_equal(object_start_count, 1);
-    assert_int_equal(key_count, 1);
-    assert_int_equal(value_count, 1);
+    assert_int_equal(ctx.current, 4);
     
     kjson_parser_destroy(parser);
 }
 
 static void test_json5_simple_comment(void **state) {
-    reset_counts();
     kjson_parser_t* parser = kjson_parser_create(NULL);
     const char* json = "/* comment */ \"value\"";
-    kjson_status_t status = kjson_parse(parser, json, strlen(json), &handlers, NULL);
+    
+    expected_event_t expected[] = {
+        { EVENT_VALUE, "value" }
+    };
+    
+    test_context_t ctx = { expected, 1, 0 };
+    
+    kjson_status_t status = kjson_parse(parser, json, strlen(json), &test_handlers, &ctx);
     
     if (status != KJSON_OK) {
         printf("Parse failed with status: %d\n", status);
     }
     assert_int_equal(status, KJSON_OK);
-    assert_int_equal(value_count, 1);
+    assert_int_equal(ctx.current, 1);
     
     kjson_parser_destroy(parser);
 }
