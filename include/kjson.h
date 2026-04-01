@@ -35,6 +35,7 @@ typedef struct {
 } kjson_event_handlers_t;
 
 kjson_parser_t* kjson_parser_create(kjson_config_t* config);
+void kjson_parser_reset(kjson_parser_t* parser);
 kjson_status_t kjson_parse(kjson_parser_t* parser, const char* data, size_t length, kjson_event_handlers_t* handlers, void* user_data);
 void kjson_parser_destroy(kjson_parser_t* parser);
 

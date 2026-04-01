@@ -44,7 +44,7 @@ endif()
 macro(ragel_generate_c RL_FILE C_FILE)
     add_custom_command(
         OUTPUT ${C_FILE}
-        COMMAND ${RAGEL_EXECUTABLE} -G2 -o ${C_FILE} ${RL_FILE}
+        COMMAND ${RAGEL_EXECUTABLE} -T1 -o ${C_FILE} ${RL_FILE}
         DEPENDS ${RL_FILE}
         COMMENT "Generating ${C_FILE} from ${RL_FILE}"
     )
@@ -102,3 +102,11 @@ add_test(NAME test_json5 COMMAND test_json5)
 add_executable(test_comprehensive test/test_comprehensive.c test/test_utils.c)
 target_link_libraries(test_comprehensive kjson cmocka)
 add_test(NAME test_comprehensive COMMAND test_comprehensive)
+
+add_executable(test_optimizations test/test_optimizations.c test/test_utils.c)
+target_link_libraries(test_optimizations kjson cmocka)
+add_test(NAME test_optimizations COMMAND test_optimizations)
+
+add_executable(test_max_depth test/test_max_depth.c test/test_utils.c)
+target_link_libraries(test_max_depth kjson cmocka)
+add_test(NAME test_max_depth COMMAND test_max_depth)

@@ -7,8 +7,10 @@ struct kjson_parser_s {
     kjson_config_t config;
     int cs;
     int top;
-    int stack[32]; // Fixed stack for now, should be dynamic or based on config
+    int* stack;           /* Ragel call stack; size = config.max_depth + 2 */
     const char* mark;
+    size_t current_depth; /* JSON nesting depth (increments on { or [) */
+    int depth_exceeded;   /* set to 1 when max_depth is violated */
 };
 
 %%{
@@ -25,47 +27,57 @@ struct kjson_parser_s {
     }
 
     action on_object_start {
-        if (handlers && handlers->on_object_start) 
-            handlers->on_object_start(p - data, user_data);
+        if (parser->current_depth >= parser->config.max_depth) {
+            parser->depth_exceeded = 1;
+            parser->cs = kjson_error;
+            fbreak;
+        }
+        parser->current_depth++;
+        if (local_h.on_object_start)
+            local_h.on_object_start(p - data, user_data);
     }
 
     action on_object_end {
-        if (handlers && handlers->on_object_end) 
-            handlers->on_object_end(p - data, user_data);
+        parser->current_depth--;
+        if (local_h.on_object_end)
+            local_h.on_object_end(p - data, user_data);
     }
 
     action on_array_start {
-        if (handlers && handlers->on_array_start) 
-            handlers->on_array_start(p - data, user_data);
+        if (parser->current_depth >= parser->config.max_depth) {
+            parser->depth_exceeded = 1;
+            parser->cs = kjson_error;
+            fbreak;
+        }
+        parser->current_depth++;
+        if (local_h.on_array_start)
+            local_h.on_array_start(p - data, user_data);
     }
 
     action on_array_end {
-        if (handlers && handlers->on_array_end) 
-            handlers->on_array_end(p - data, user_data);
+        parser->current_depth--;
+        if (local_h.on_array_end)
+            local_h.on_array_end(p - data, user_data);
     }
 
     action on_key {
-        if (handlers && handlers->on_key)
-            handlers->on_key(parser->mark, p - parser->mark, user_data);
+        if (local_h.on_key)
+            local_h.on_key(parser->mark, p - parser->mark, user_data);
     }
 
     action on_quoted_key {
-        if (handlers && handlers->on_key) {
-            // Strip quotes
-            handlers->on_key(parser->mark + 1, p - parser->mark - 1, user_data);
-        }
+        if (local_h.on_key)
+            local_h.on_key(parser->mark + 1, p - parser->mark - 1, user_data);
     }
 
     action on_value {
-        if (handlers && handlers->on_value)
-            handlers->on_value(parser->mark, p - parser->mark, user_data);
+        if (local_h.on_value)
+            local_h.on_value(parser->mark, p - parser->mark, user_data);
     }
 
     action on_quoted_value {
-        if (handlers && handlers->on_value) {
-            // Strip quotes
-            handlers->on_value(parser->mark + 1, p - parser->mark - 1, user_data);
-        }
+        if (local_h.on_value)
+            local_h.on_value(parser->mark + 1, p - parser->mark - 1, user_data);
     }
 
     action debug {
@@ -165,29 +177,58 @@ kjson_parser_t* kjson_parser_create(kjson_config_t* config) {
         parser->config.max_string_length = 1024;
         parser->config.allow_json5 = 1;
     }
-    
+
+    /* Allocate the Ragel call stack.  Each JSON nesting level consumes at
+       most one fcall slot (the value sub-machine call), plus one slot for
+       the initial call from main, so max_depth + 2 entries are sufficient. */
+    size_t stack_size = parser->config.max_depth + 2;
+    parser->stack = (int*)malloc(stack_size * sizeof(int));
+    if (!parser->stack) {
+        free(parser);
+        return NULL;
+    }
+
+    parser->current_depth = 0;
+    parser->depth_exceeded = 0;
+
     %% write init;
-    
+
     return parser;
 }
 
 void kjson_parser_destroy(kjson_parser_t* parser) {
     if (parser) {
+        free(parser->stack);
         free(parser);
+    }
+}
+
+void kjson_parser_reset(kjson_parser_t* parser) {
+    if (parser) {
+        parser->current_depth = 0;
+        parser->depth_exceeded = 0;
+        %% write init;
     }
 }
 
 kjson_status_t kjson_parse(kjson_parser_t* parser, const char* data, size_t length, kjson_event_handlers_t* handlers, void* user_data) {
     if (!parser || !data) return KJSON_ERROR_INVALID_JSON;
 
+    /* Pre-cache handler pointers into a stack-local struct so every action
+       performs a single cheap function-pointer check instead of two pointer
+       dereferences (handlers != NULL, then handlers->on_xxx). */
+    kjson_event_handlers_t local_h = {0};
+    if (handlers) local_h = *handlers;
+
     const char* p = data;
     const char* pe = data + length;
     const char* eof = pe;
 
-    printf("Parsing: %.*s\n", (int)length, data);
-
     %% write exec;
 
+    if (parser->depth_exceeded) {
+        return KJSON_ERROR_MAX_DEPTH_EXCEEDED;
+    }
     if (parser->cs == kjson_error) {
         return KJSON_ERROR_INVALID_JSON;
     }

@@ -9,26 +9,14 @@ struct kjson_parser_s {
     kjson_config_t config;
     int cs;
     int top;
-    int stack[32]; // Fixed stack for now, should be dynamic or based on config
+    int* stack;           /* Ragel call stack; size = config.max_depth + 2 */
     const char* mark;
+    size_t current_depth; /* JSON nesting depth (increments on { or [) */
+    int depth_exceeded;   /* set to 1 when max_depth is violated */
 };
 
 
-#line 15 "src/kjson.c"
-static const char _kjson_actions[] = {
-	0, 1, 0, 1, 5, 1, 6, 1, 
-	7, 1, 8, 1, 9, 1, 10, 1, 
-	12, 2, 0, 12, 2, 1, 20, 2, 
-	1, 22, 2, 2, 14, 2, 2, 15, 
-	2, 2, 16, 2, 3, 21, 2, 3, 
-	23, 2, 4, 17, 2, 4, 18, 2, 
-	4, 19, 2, 5, 9, 2, 7, 13, 
-	2, 8, 11, 3, 4, 17, 18, 3, 
-	4, 17, 19, 3, 4, 18, 19, 3, 
-	7, 13, 11, 4, 4, 17, 18, 19
-	
-};
-
+#line 17 "src/kjson.c"
 static const short _kjson_key_offsets[] = {
 	0, 0, 13, 15, 16, 18, 19, 21, 
 	23, 25, 27, 30, 32, 32, 34, 34, 
@@ -1541,119 +1529,119 @@ static const short _kjson_trans_targs[] = {
 };
 
 static const char _kjson_trans_actions[] = {
-	15, 0, 1, 17, 0, 0, 38, 23, 
+	1, 0, 2, 3, 0, 0, 4, 5, 
 	0, 0, 0, 0, 0, 0, 0, 0, 
-	0, 0, 9, 0, 0, 0, 0, 0, 
-	9, 0, 0, 0, 9, 0, 0, 0, 
-	9, 0, 0, 0, 0, 0, 0, 0, 
-	0, 0, 0, 1, 1, 1, 0, 26, 
-	0, 5, 0, 0, 0, 11, 0, 0, 
-	0, 0, 0, 0, 32, 0, 29, 3, 
-	0, 3, 50, 0, 0, 0, 0, 0, 
-	0, 0, 0, 0, 0, 0, 13, 0, 
-	13, 41, 0, 0, 0, 47, 13, 44, 
+	0, 0, 6, 0, 0, 0, 0, 0, 
+	6, 0, 0, 0, 6, 0, 0, 0, 
+	6, 0, 0, 0, 0, 0, 0, 0, 
+	0, 0, 0, 2, 2, 2, 0, 7, 
+	0, 8, 0, 0, 0, 9, 0, 0, 
+	0, 0, 0, 0, 10, 0, 11, 12, 
+	0, 12, 13, 0, 0, 0, 0, 0, 
+	0, 0, 0, 0, 0, 0, 14, 0, 
+	14, 15, 0, 0, 0, 16, 14, 17, 
 	0, 0, 0, 0, 0, 0, 0, 0, 
-	13, 13, 13, 44, 0, 0, 0, 0, 
-	47, 0, 0, 0, 0, 0, 0, 0, 
-	47, 13, 0, 13, 44, 13, 13, 67, 
-	0, 0, 0, 0, 0, 0, 13, 13, 
-	67, 0, 0, 0, 0, 0, 0, 47, 
-	13, 13, 13, 44, 0, 13, 0, 0, 
-	0, 13, 67, 0, 0, 0, 13, 13, 
-	13, 13, 67, 0, 0, 0, 47, 13, 
-	44, 0, 0, 0, 0, 0, 0, 0, 
-	0, 0, 0, 13, 13, 44, 0, 47, 
-	0, 0, 0, 0, 13, 13, 67, 13, 
-	13, 13, 44, 0, 0, 47, 0, 0, 
-	0, 0, 0, 47, 13, 13, 13, 44, 
-	0, 13, 0, 0, 47, 13, 44, 0, 
+	14, 14, 14, 17, 0, 0, 0, 0, 
+	16, 0, 0, 0, 0, 0, 0, 0, 
+	16, 14, 0, 14, 17, 14, 14, 18, 
+	0, 0, 0, 0, 0, 0, 14, 14, 
+	18, 0, 0, 0, 0, 0, 0, 16, 
+	14, 14, 14, 17, 0, 14, 0, 0, 
+	0, 14, 18, 0, 0, 0, 14, 14, 
+	14, 14, 18, 0, 0, 0, 16, 14, 
+	17, 0, 0, 0, 0, 0, 0, 0, 
+	0, 0, 0, 14, 14, 17, 0, 16, 
+	0, 0, 0, 0, 14, 14, 18, 14, 
+	14, 14, 17, 0, 0, 16, 0, 0, 
+	0, 0, 0, 16, 14, 14, 14, 17, 
+	0, 14, 0, 0, 16, 14, 17, 0, 
 	0, 0, 0, 0, 0, 0, 0, 0, 
-	0, 13, 13, 67, 0, 0, 0, 0, 
-	0, 13, 13, 67, 13, 13, 13, 13, 
-	67, 0, 47, 13, 44, 0, 0, 0, 
-	0, 47, 13, 13, 13, 44, 0, 0, 
-	0, 0, 0, 0, 47, 13, 13, 13, 
-	44, 0, 0, 0, 13, 13, 67, 0, 
-	0, 0, 0, 13, 13, 67, 0, 0, 
-	0, 47, 13, 13, 13, 44, 0, 0, 
-	0, 13, 13, 67, 0, 0, 0, 0, 
-	0, 0, 0, 0, 0, 0, 13, 41, 
-	0, 0, 0, 0, 0, 0, 13, 63, 
-	0, 0, 0, 0, 13, 63, 0, 0, 
-	0, 0, 0, 47, 13, 13, 13, 44, 
-	0, 13, 0, 0, 0, 63, 0, 0, 
-	0, 0, 0, 0, 13, 75, 0, 0, 
-	0, 0, 0, 13, 75, 0, 0, 0, 
-	0, 0, 47, 13, 13, 13, 44, 0, 
-	13, 0, 0, 0, 75, 0, 0, 0, 
-	13, 75, 0, 0, 0, 0, 0, 0, 
-	13, 13, 44, 0, 47, 0, 0, 0, 
-	0, 13, 75, 0, 0, 0, 13, 13, 
-	67, 0, 0, 0, 0, 0, 0, 13, 
-	75, 0, 13, 75, 0, 0, 0, 47, 
-	13, 13, 13, 44, 0, 0, 0, 13, 
-	75, 0, 0, 0, 47, 13, 13, 13, 
-	44, 0, 0, 0, 0, 13, 13, 67, 
-	0, 47, 13, 13, 13, 44, 0, 0, 
-	0, 0, 0, 13, 13, 67, 0, 0, 
-	0, 47, 13, 13, 13, 44, 0, 0, 
-	0, 13, 13, 67, 0, 0, 0, 0, 
-	0, 13, 75, 0, 13, 75, 0, 0, 
-	0, 47, 13, 13, 13, 44, 0, 0, 
-	0, 13, 75, 0, 13, 63, 0, 0, 
-	0, 0, 0, 0, 13, 13, 44, 0, 
-	47, 0, 0, 0, 0, 13, 63, 0, 
-	0, 0, 13, 13, 67, 0, 0, 0, 
-	0, 0, 0, 13, 63, 0, 13, 63, 
-	0, 0, 0, 47, 13, 13, 13, 44, 
-	0, 0, 0, 13, 63, 0, 0, 0, 
-	0, 0, 13, 13, 67, 13, 13, 13, 
-	13, 67, 0, 47, 13, 44, 0, 0, 
-	0, 0, 47, 13, 13, 13, 44, 0, 
-	0, 0, 0, 0, 0, 47, 13, 13, 
-	13, 44, 0, 0, 0, 13, 13, 67, 
-	0, 0, 0, 0, 0, 13, 63, 0, 
-	13, 63, 0, 0, 0, 47, 13, 13, 
-	13, 44, 0, 0, 0, 13, 63, 0, 
-	0, 0, 47, 13, 13, 13, 44, 0, 
-	13, 0, 0, 0, 41, 0, 0, 0, 
-	0, 0, 0, 13, 59, 0, 0, 0, 
-	0, 0, 13, 59, 0, 0, 0, 0, 
-	0, 47, 13, 13, 13, 44, 0, 13, 
-	0, 0, 0, 59, 0, 0, 0, 13, 
-	59, 0, 0, 0, 0, 0, 0, 13, 
-	13, 44, 0, 47, 0, 0, 0, 0, 
-	13, 59, 0, 0, 0, 13, 13, 67, 
-	0, 0, 0, 0, 0, 0, 13, 59, 
-	0, 13, 59, 0, 0, 0, 47, 13, 
-	13, 13, 44, 0, 0, 0, 13, 59, 
-	0, 0, 0, 0, 0, 13, 13, 67, 
-	13, 13, 13, 13, 67, 0, 47, 13, 
-	44, 0, 0, 0, 0, 47, 13, 13, 
-	13, 44, 0, 0, 0, 0, 0, 0, 
-	47, 13, 13, 13, 44, 0, 0, 0, 
-	13, 13, 67, 0, 0, 0, 0, 0, 
-	13, 59, 0, 13, 59, 0, 0, 0, 
-	47, 13, 13, 13, 44, 0, 0, 0, 
-	13, 59, 0, 13, 41, 0, 0, 0, 
-	0, 0, 0, 13, 13, 44, 0, 47, 
-	0, 0, 0, 0, 13, 41, 0, 0, 
-	0, 13, 13, 67, 0, 0, 0, 0, 
-	0, 0, 13, 41, 0, 13, 41, 0, 
-	0, 0, 47, 13, 13, 13, 44, 0, 
-	0, 0, 13, 41, 0, 0, 0, 0, 
-	0, 13, 13, 67, 13, 13, 13, 13, 
-	67, 0, 47, 13, 44, 0, 0, 0, 
-	0, 47, 13, 13, 13, 44, 0, 0, 
-	0, 0, 0, 0, 47, 13, 13, 13, 
-	44, 0, 0, 0, 13, 13, 67, 0, 
-	0, 0, 0, 0, 13, 41, 0, 13, 
-	41, 0, 0, 0, 47, 13, 13, 13, 
-	44, 0, 0, 0, 13, 41, 0, 15, 
-	0, 1, 17, 0, 35, 20, 0, 71, 
-	0, 56, 0, 0, 71, 56, 0, 0, 
-	0, 0, 0, 0, 0, 53, 53, 0, 
-	0, 0, 0, 53, 9, 53, 0, 0, 
+	0, 14, 14, 18, 0, 0, 0, 0, 
+	0, 14, 14, 18, 14, 14, 14, 14, 
+	18, 0, 16, 14, 17, 0, 0, 0, 
+	0, 16, 14, 14, 14, 17, 0, 0, 
+	0, 0, 0, 0, 16, 14, 14, 14, 
+	17, 0, 0, 0, 14, 14, 18, 0, 
+	0, 0, 0, 14, 14, 18, 0, 0, 
+	0, 16, 14, 14, 14, 17, 0, 0, 
+	0, 14, 14, 18, 0, 0, 0, 0, 
+	0, 0, 0, 0, 0, 0, 14, 15, 
+	0, 0, 0, 0, 0, 0, 14, 19, 
+	0, 0, 0, 0, 14, 19, 0, 0, 
+	0, 0, 0, 16, 14, 14, 14, 17, 
+	0, 14, 0, 0, 0, 19, 0, 0, 
+	0, 0, 0, 0, 14, 20, 0, 0, 
+	0, 0, 0, 14, 20, 0, 0, 0, 
+	0, 0, 16, 14, 14, 14, 17, 0, 
+	14, 0, 0, 0, 20, 0, 0, 0, 
+	14, 20, 0, 0, 0, 0, 0, 0, 
+	14, 14, 17, 0, 16, 0, 0, 0, 
+	0, 14, 20, 0, 0, 0, 14, 14, 
+	18, 0, 0, 0, 0, 0, 0, 14, 
+	20, 0, 14, 20, 0, 0, 0, 16, 
+	14, 14, 14, 17, 0, 0, 0, 14, 
+	20, 0, 0, 0, 16, 14, 14, 14, 
+	17, 0, 0, 0, 0, 14, 14, 18, 
+	0, 16, 14, 14, 14, 17, 0, 0, 
+	0, 0, 0, 14, 14, 18, 0, 0, 
+	0, 16, 14, 14, 14, 17, 0, 0, 
+	0, 14, 14, 18, 0, 0, 0, 0, 
+	0, 14, 20, 0, 14, 20, 0, 0, 
+	0, 16, 14, 14, 14, 17, 0, 0, 
+	0, 14, 20, 0, 14, 19, 0, 0, 
+	0, 0, 0, 0, 14, 14, 17, 0, 
+	16, 0, 0, 0, 0, 14, 19, 0, 
+	0, 0, 14, 14, 18, 0, 0, 0, 
+	0, 0, 0, 14, 19, 0, 14, 19, 
+	0, 0, 0, 16, 14, 14, 14, 17, 
+	0, 0, 0, 14, 19, 0, 0, 0, 
+	0, 0, 14, 14, 18, 14, 14, 14, 
+	14, 18, 0, 16, 14, 17, 0, 0, 
+	0, 0, 16, 14, 14, 14, 17, 0, 
+	0, 0, 0, 0, 0, 16, 14, 14, 
+	14, 17, 0, 0, 0, 14, 14, 18, 
+	0, 0, 0, 0, 0, 14, 19, 0, 
+	14, 19, 0, 0, 0, 16, 14, 14, 
+	14, 17, 0, 0, 0, 14, 19, 0, 
+	0, 0, 16, 14, 14, 14, 17, 0, 
+	14, 0, 0, 0, 15, 0, 0, 0, 
+	0, 0, 0, 14, 21, 0, 0, 0, 
+	0, 0, 14, 21, 0, 0, 0, 0, 
+	0, 16, 14, 14, 14, 17, 0, 14, 
+	0, 0, 0, 21, 0, 0, 0, 14, 
+	21, 0, 0, 0, 0, 0, 0, 14, 
+	14, 17, 0, 16, 0, 0, 0, 0, 
+	14, 21, 0, 0, 0, 14, 14, 18, 
+	0, 0, 0, 0, 0, 0, 14, 21, 
+	0, 14, 21, 0, 0, 0, 16, 14, 
+	14, 14, 17, 0, 0, 0, 14, 21, 
+	0, 0, 0, 0, 0, 14, 14, 18, 
+	14, 14, 14, 14, 18, 0, 16, 14, 
+	17, 0, 0, 0, 0, 16, 14, 14, 
+	14, 17, 0, 0, 0, 0, 0, 0, 
+	16, 14, 14, 14, 17, 0, 0, 0, 
+	14, 14, 18, 0, 0, 0, 0, 0, 
+	14, 21, 0, 14, 21, 0, 0, 0, 
+	16, 14, 14, 14, 17, 0, 0, 0, 
+	14, 21, 0, 14, 15, 0, 0, 0, 
+	0, 0, 0, 14, 14, 17, 0, 16, 
+	0, 0, 0, 0, 14, 15, 0, 0, 
+	0, 14, 14, 18, 0, 0, 0, 0, 
+	0, 0, 14, 15, 0, 14, 15, 0, 
+	0, 0, 16, 14, 14, 14, 17, 0, 
+	0, 0, 14, 15, 0, 0, 0, 0, 
+	0, 14, 14, 18, 14, 14, 14, 14, 
+	18, 0, 16, 14, 17, 0, 0, 0, 
+	0, 16, 14, 14, 14, 17, 0, 0, 
+	0, 0, 0, 0, 16, 14, 14, 14, 
+	17, 0, 0, 0, 14, 14, 18, 0, 
+	0, 0, 0, 0, 14, 15, 0, 14, 
+	15, 0, 0, 0, 16, 14, 14, 14, 
+	17, 0, 0, 0, 14, 15, 0, 1, 
+	0, 2, 3, 0, 22, 23, 0, 24, 
+	0, 25, 0, 0, 24, 25, 0, 0, 
+	0, 0, 0, 0, 0, 27, 27, 0, 
+	0, 0, 0, 27, 6, 27, 0, 0, 
 	0, 0, 0
 };
 
@@ -1738,8 +1726,8 @@ static const char _kjson_eof_actions[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 
 	0, 0, 0, 0, 0, 0, 0, 0, 
 	0, 0, 0, 0, 0, 0, 0, 0, 
-	0, 0, 0, 7, 0, 0, 0, 0, 
-	7, 0, 0, 0, 0, 0, 7, 0, 
+	0, 0, 0, 26, 0, 0, 0, 0, 
+	26, 0, 0, 0, 0, 0, 26, 0, 
 	0, 0, 0, 0, 0, 0, 0, 0, 
 	0, 0, 0, 0, 0, 0, 0, 0, 
 	0, 0, 0, 0, 0, 0, 0, 0, 
@@ -1762,7 +1750,7 @@ static const int kjson_en_value = 631;
 static const int kjson_en_main = 1;
 
 
-#line 155 "src/kjson.rl"
+#line 167 "src/kjson.rl"
 
 
 kjson_parser_t* kjson_parser_create(kjson_config_t* config) {
@@ -1776,42 +1764,73 @@ kjson_parser_t* kjson_parser_create(kjson_config_t* config) {
         parser->config.max_string_length = 1024;
         parser->config.allow_json5 = 1;
     }
+
+    /* Allocate the Ragel call stack.  Each JSON nesting level consumes at
+       most one fcall slot (the value sub-machine call), plus one slot for
+       the initial call from main, so max_depth + 2 entries are sufficient. */
+    size_t stack_size = parser->config.max_depth + 2;
+    parser->stack = (int*)malloc(stack_size * sizeof(int));
+    if (!parser->stack) {
+        free(parser);
+        return NULL;
+    }
+
+    parser->current_depth = 0;
+    parser->depth_exceeded = 0;
+
     
-    
-#line 1775 "src/kjson.c"
+#line 1776 "src/kjson.c"
 	{
 	( parser->cs) = kjson_start;
 	( parser->top) = 0;
 	}
 
-#line 170 "src/kjson.rl"
-    
+#line 195 "src/kjson.rl"
+
     return parser;
 }
 
 void kjson_parser_destroy(kjson_parser_t* parser) {
     if (parser) {
+        free(parser->stack);
         free(parser);
+    }
+}
+
+void kjson_parser_reset(kjson_parser_t* parser) {
+    if (parser) {
+        parser->current_depth = 0;
+        parser->depth_exceeded = 0;
+        
+#line 1795 "src/kjson.c"
+	{
+	( parser->cs) = kjson_start;
+	( parser->top) = 0;
+	}
+
+#line 211 "src/kjson.rl"
     }
 }
 
 kjson_status_t kjson_parse(kjson_parser_t* parser, const char* data, size_t length, kjson_event_handlers_t* handlers, void* user_data) {
     if (!parser || !data) return KJSON_ERROR_INVALID_JSON;
 
+    /* Pre-cache handler pointers into a stack-local struct so every action
+       performs a single cheap function-pointer check instead of two pointer
+       dereferences (handlers != NULL, then handlers->on_xxx). */
+    kjson_event_handlers_t local_h = {0};
+    if (handlers) local_h = *handlers;
+
     const char* p = data;
     const char* pe = data + length;
     const char* eof = pe;
 
-    printf("Parsing: %.*s\n", (int)length, data);
-
     
-#line 1798 "src/kjson.c"
+#line 1815 "src/kjson.c"
 	{
 	int _klen;
-	unsigned int _trans;
-	const char *_acts;
-	unsigned int _nacts;
 	const char *_keys;
+	int _trans;
 
 	if ( p == pe )
 		goto _test_eof;
@@ -1873,140 +1892,263 @@ _match:
 	if ( _kjson_trans_actions[_trans] == 0 )
 		goto _again;
 
-	_acts = _kjson_actions + _kjson_trans_actions[_trans];
-	_nacts = (unsigned int) *_acts++;
-	while ( _nacts-- > 0 )
-	{
-		switch ( *_acts++ )
-		{
-	case 0:
-#line 23 "src/kjson.rl"
+	switch ( _kjson_trans_actions[_trans] ) {
+	case 2:
+#line 25 "src/kjson.rl"
 	{
         parser->mark = p;
     }
 	break;
-	case 1:
-#line 27 "src/kjson.rl"
+	case 12:
+#line 63 "src/kjson.rl"
 	{
-        if (handlers && handlers->on_object_start) 
-            handlers->on_object_start(p - data, user_data);
-    }
-	break;
-	case 2:
-#line 32 "src/kjson.rl"
-	{
-        if (handlers && handlers->on_object_end) 
-            handlers->on_object_end(p - data, user_data);
-    }
-	break;
-	case 3:
-#line 37 "src/kjson.rl"
-	{
-        if (handlers && handlers->on_array_start) 
-            handlers->on_array_start(p - data, user_data);
-    }
-	break;
-	case 4:
-#line 42 "src/kjson.rl"
-	{
-        if (handlers && handlers->on_array_end) 
-            handlers->on_array_end(p - data, user_data);
-    }
-	break;
-	case 5:
-#line 47 "src/kjson.rl"
-	{
-        if (handlers && handlers->on_key)
-            handlers->on_key(parser->mark, p - parser->mark, user_data);
-    }
-	break;
-	case 6:
-#line 52 "src/kjson.rl"
-	{
-        if (handlers && handlers->on_key) {
-            // Strip quotes
-            handlers->on_key(parser->mark + 1, p - parser->mark - 1, user_data);
-        }
-    }
-	break;
-	case 7:
-#line 59 "src/kjson.rl"
-	{
-        if (handlers && handlers->on_value)
-            handlers->on_value(parser->mark, p - parser->mark, user_data);
+        if (local_h.on_key)
+            local_h.on_key(parser->mark, p - parser->mark, user_data);
     }
 	break;
 	case 8:
-#line 64 "src/kjson.rl"
+#line 68 "src/kjson.rl"
 	{
-        if (handlers && handlers->on_value) {
-            // Strip quotes
-            handlers->on_value(parser->mark + 1, p - parser->mark - 1, user_data);
-        }
+        if (local_h.on_key)
+            local_h.on_key(parser->mark + 1, p - parser->mark - 1, user_data);
+    }
+	break;
+	case 6:
+#line 78 "src/kjson.rl"
+	{
+        if (local_h.on_value)
+            local_h.on_value(parser->mark + 1, p - parser->mark - 1, user_data);
     }
 	break;
 	case 9:
-#line 85 "src/kjson.rl"
+#line 97 "src/kjson.rl"
 	{ {( parser->stack)[( parser->top)++] = ( parser->cs); ( parser->cs) = 631;goto _again;} }
 	break;
-	case 10:
-#line 86 "src/kjson.rl"
+	case 14:
+#line 98 "src/kjson.rl"
 	{ p--; {( parser->stack)[( parser->top)++] = ( parser->cs); ( parser->cs) = 631;goto _again;} }
 	break;
-	case 11:
-#line 87 "src/kjson.rl"
-	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
-	break;
-	case 12:
-#line 88 "src/kjson.rl"
+	case 1:
+#line 100 "src/kjson.rl"
 	{ parser->mark = p; }
 	break;
-	case 13:
-#line 104 "src/kjson.rl"
-	{ p--; }
+	case 3:
+#line 25 "src/kjson.rl"
+	{
+        parser->mark = p;
+    }
+#line 100 "src/kjson.rl"
+	{ parser->mark = p; }
 	break;
-	case 14:
-#line 110 "src/kjson.rl"
-	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
+	case 23:
+#line 29 "src/kjson.rl"
+	{
+        if (parser->current_depth >= parser->config.max_depth) {
+            parser->depth_exceeded = 1;
+            parser->cs = kjson_error;
+            {p++; goto _out; }
+        }
+        parser->current_depth++;
+        if (local_h.on_object_start)
+            local_h.on_object_start(p - data, user_data);
+    }
+#line 149 "src/kjson.rl"
+	{ {( parser->cs) = 33;goto _again;} }
 	break;
-	case 15:
-#line 114 "src/kjson.rl"
-	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
+	case 5:
+#line 29 "src/kjson.rl"
+	{
+        if (parser->current_depth >= parser->config.max_depth) {
+            parser->depth_exceeded = 1;
+            parser->cs = kjson_error;
+            {p++; goto _out; }
+        }
+        parser->current_depth++;
+        if (local_h.on_object_start)
+            local_h.on_object_start(p - data, user_data);
+    }
+#line 161 "src/kjson.rl"
+	{ {( parser->stack)[( parser->top)++] = ( parser->cs); ( parser->cs) = 33;goto _again;} }
 	break;
-	case 16:
-#line 116 "src/kjson.rl"
-	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
-	break;
-	case 17:
+	case 7:
+#line 40 "src/kjson.rl"
+	{
+        parser->current_depth--;
+        if (local_h.on_object_end)
+            local_h.on_object_end(p - data, user_data);
+    }
 #line 122 "src/kjson.rl"
 	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
 	break;
-	case 18:
+	case 11:
+#line 40 "src/kjson.rl"
+	{
+        parser->current_depth--;
+        if (local_h.on_object_end)
+            local_h.on_object_end(p - data, user_data);
+    }
 #line 126 "src/kjson.rl"
 	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
 	break;
-	case 19:
+	case 10:
+#line 40 "src/kjson.rl"
+	{
+        parser->current_depth--;
+        if (local_h.on_object_end)
+            local_h.on_object_end(p - data, user_data);
+    }
 #line 128 "src/kjson.rl"
 	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
 	break;
-	case 20:
-#line 137 "src/kjson.rl"
-	{ {( parser->cs) = 33;goto _again;} }
-	break;
-	case 21:
-#line 138 "src/kjson.rl"
+	case 22:
+#line 46 "src/kjson.rl"
+	{
+        if (parser->current_depth >= parser->config.max_depth) {
+            parser->depth_exceeded = 1;
+            parser->cs = kjson_error;
+            {p++; goto _out; }
+        }
+        parser->current_depth++;
+        if (local_h.on_array_start)
+            local_h.on_array_start(p - data, user_data);
+    }
+#line 150 "src/kjson.rl"
 	{ {( parser->cs) = 58;goto _again;} }
 	break;
-	case 22:
-#line 149 "src/kjson.rl"
-	{ {( parser->stack)[( parser->top)++] = ( parser->cs); ( parser->cs) = 33;goto _again;} }
-	break;
-	case 23:
-#line 150 "src/kjson.rl"
+	case 4:
+#line 46 "src/kjson.rl"
+	{
+        if (parser->current_depth >= parser->config.max_depth) {
+            parser->depth_exceeded = 1;
+            parser->cs = kjson_error;
+            {p++; goto _out; }
+        }
+        parser->current_depth++;
+        if (local_h.on_array_start)
+            local_h.on_array_start(p - data, user_data);
+    }
+#line 162 "src/kjson.rl"
 	{ {( parser->stack)[( parser->top)++] = ( parser->cs); ( parser->cs) = 58;goto _again;} }
 	break;
-#line 1973 "src/kjson.c"
-		}
+	case 15:
+#line 57 "src/kjson.rl"
+	{
+        parser->current_depth--;
+        if (local_h.on_array_end)
+            local_h.on_array_end(p - data, user_data);
+    }
+#line 134 "src/kjson.rl"
+	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
+	break;
+	case 17:
+#line 57 "src/kjson.rl"
+	{
+        parser->current_depth--;
+        if (local_h.on_array_end)
+            local_h.on_array_end(p - data, user_data);
+    }
+#line 138 "src/kjson.rl"
+	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
+	break;
+	case 16:
+#line 57 "src/kjson.rl"
+	{
+        parser->current_depth--;
+        if (local_h.on_array_end)
+            local_h.on_array_end(p - data, user_data);
+    }
+#line 140 "src/kjson.rl"
+	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
+	break;
+	case 13:
+#line 63 "src/kjson.rl"
+	{
+        if (local_h.on_key)
+            local_h.on_key(parser->mark, p - parser->mark, user_data);
+    }
+#line 97 "src/kjson.rl"
+	{ {( parser->stack)[( parser->top)++] = ( parser->cs); ( parser->cs) = 631;goto _again;} }
+	break;
+	case 27:
+#line 73 "src/kjson.rl"
+	{
+        if (local_h.on_value)
+            local_h.on_value(parser->mark, p - parser->mark, user_data);
+    }
+#line 116 "src/kjson.rl"
+	{ p--; }
+	break;
+	case 25:
+#line 78 "src/kjson.rl"
+	{
+        if (local_h.on_value)
+            local_h.on_value(parser->mark + 1, p - parser->mark - 1, user_data);
+    }
+#line 99 "src/kjson.rl"
+	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
+	break;
+	case 21:
+#line 57 "src/kjson.rl"
+	{
+        parser->current_depth--;
+        if (local_h.on_array_end)
+            local_h.on_array_end(p - data, user_data);
+    }
+#line 134 "src/kjson.rl"
+	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
+#line 138 "src/kjson.rl"
+	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
+	break;
+	case 19:
+#line 57 "src/kjson.rl"
+	{
+        parser->current_depth--;
+        if (local_h.on_array_end)
+            local_h.on_array_end(p - data, user_data);
+    }
+#line 134 "src/kjson.rl"
+	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
+#line 140 "src/kjson.rl"
+	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
+	break;
+	case 18:
+#line 57 "src/kjson.rl"
+	{
+        parser->current_depth--;
+        if (local_h.on_array_end)
+            local_h.on_array_end(p - data, user_data);
+    }
+#line 138 "src/kjson.rl"
+	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
+#line 140 "src/kjson.rl"
+	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
+	break;
+	case 24:
+#line 73 "src/kjson.rl"
+	{
+        if (local_h.on_value)
+            local_h.on_value(parser->mark, p - parser->mark, user_data);
+    }
+#line 116 "src/kjson.rl"
+	{ p--; }
+#line 99 "src/kjson.rl"
+	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
+	break;
+	case 20:
+#line 57 "src/kjson.rl"
+	{
+        parser->current_depth--;
+        if (local_h.on_array_end)
+            local_h.on_array_end(p - data, user_data);
+    }
+#line 134 "src/kjson.rl"
+	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
+#line 138 "src/kjson.rl"
+	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
+#line 140 "src/kjson.rl"
+	{ {( parser->cs) = ( parser->stack)[--( parser->top)]; goto _again;} }
+	break;
+#line 2085 "src/kjson.c"
 	}
 
 _again:
@@ -2017,27 +2159,26 @@ _again:
 	_test_eof: {}
 	if ( p == eof )
 	{
-	const char *__acts = _kjson_actions + _kjson_eof_actions[( parser->cs)];
-	unsigned int __nacts = (unsigned int) *__acts++;
-	while ( __nacts-- > 0 ) {
-		switch ( *__acts++ ) {
-	case 7:
-#line 59 "src/kjson.rl"
+	switch ( _kjson_eof_actions[( parser->cs)] ) {
+	case 26:
+#line 73 "src/kjson.rl"
 	{
-        if (handlers && handlers->on_value)
-            handlers->on_value(parser->mark, p - parser->mark, user_data);
+        if (local_h.on_value)
+            local_h.on_value(parser->mark, p - parser->mark, user_data);
     }
 	break;
-#line 1994 "src/kjson.c"
-		}
+#line 2102 "src/kjson.c"
 	}
 	}
 
 	_out: {}
 	}
 
-#line 190 "src/kjson.rl"
+#line 228 "src/kjson.rl"
 
+    if (parser->depth_exceeded) {
+        return KJSON_ERROR_MAX_DEPTH_EXCEEDED;
+    }
     if (parser->cs == kjson_error) {
         return KJSON_ERROR_INVALID_JSON;
     }
